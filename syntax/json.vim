@@ -48,6 +48,28 @@ syn match   jsonEscape    "\\u\x\{4}" contained
 " Syntax: Numbers
 syn match   jsonNumber    "-\=\<\%(0\|[1-9]\d*\)\%(\.\d\+\)\=\%([eE][-+]\=\d\+\)\=\>\ze[[:blank:]\r\n]*[,}\]]"
 
+if (!exists("g:vim_json_comment_warnings") || g:vim_json_comment_warnings==1)
+	" Syntax: No comments in JSON, see http://stackoverflow.com/questions/244777/can-i-comment-a-json-file
+	syn match   jsonCommentError  "//.*"
+	syn match   jsonCommentError  "\(/\*\)\|\(\*/\)"
+else
+  syntax keyword jsCommentTodo    contained TODO FIXME XXX TBD NOTE
+  syntax region  jsComment        start=+//+ end=/$/ contains=jsCommentTodo,@Spell extend keepend
+  syntax region  jsComment        start=+/\*+  end=+\*/+ contains=jsCommentTodo,@Spell fold extend keepend
+  syntax region  jsCommentEnv     start=/\%^#!/ end=/$/ display
+  " Specialized Comments - These are special comment regexes that are used in
+  " odd places that maintain the proper nextgroup functionality. It sucks we
+  " can't make jsComment a skippable type of group for nextgroup
+  syntax region  jsCommentFunction    contained start=+//+ end=/$/    contains=jsCommentTodo,@Spell skipwhite skipempty nextgroup=jsFuncBlock,jsFlowReturn extend keepend
+  syntax region  jsCommentFunction    contained start=+/\*+ end=+\*/+ contains=jsCommentTodo,@Spell skipwhite skipempty nextgroup=jsFuncBlock,jsFlowReturn fold extend keepend
+  syntax region  jsCommentClass       contained start=+//+ end=/$/    contains=jsCommentTodo,@Spell skipwhite skipempty nextgroup=jsClassBlock,jsFlowClassGroup extend keepend
+  syntax region  jsCommentClass       contained start=+/\*+ end=+\*/+ contains=jsCommentTodo,@Spell skipwhite skipempty nextgroup=jsClassBlock,jsFlowClassGroup fold extend keepend
+  syntax region  jsCommentIfElse      contained start=+//+ end=/$/    contains=jsCommentTodo,@Spell skipwhite skipempty nextgroup=jsIfElseBlock extend keepend
+  syntax region  jsCommentIfElse      contained start=+/\*+ end=+\*/+ contains=jsCommentTodo,@Spell skipwhite skipempty nextgroup=jsIfElseBlock fold extend keepend
+  syntax region  jsCommentRepeat      contained start=+//+ end=/$/    contains=jsCommentTodo,@Spell skipwhite skipempty nextgroup=jsRepeatBlock extend keepend
+  syntax region  jsCommentRepeat      contained start=+/\*+ end=+\*/+ contains=jsCommentTodo,@Spell skipwhite skipempty nextgroup=jsRepeatBlock fold extend keepend
+endif
+
 " ERROR WARNINGS **********************************************
 if (!exists("g:vim_json_warnings") || g:vim_json_warnings==1)
 	" Syntax: Strings should always be enclosed with quotes.
@@ -59,10 +81,6 @@ if (!exists("g:vim_json_warnings") || g:vim_json_warnings==1)
 
 	" Syntax: Decimals smaller than one should begin with 0 (so .1 should be 0.1).
 	syn match   jsonNumError  "\:\@<=[[:blank:]\r\n]*\zs\.\d\+"
-
-	" Syntax: No comments in JSON, see http://stackoverflow.com/questions/244777/can-i-comment-a-json-file
-	syn match   jsonCommentError  "//.*"
-	syn match   jsonCommentError  "\(/\*\)\|\(\*/\)"
 
 	" Syntax: No semicolons in JSON
 	syn match   jsonSemicolonError  ";"
@@ -109,9 +127,20 @@ if version >= 508 || !exists("did_json_syn_inits")
   hi def link jsonBoolean		Boolean
   hi def link jsonKeyword		Label
 
-	if (!exists("g:vim_json_warnings") || g:vim_json_warnings==1)
-		hi def link jsonNumError					Error
+	if (!exists("g:vim_json_comment_warnings") || g:vim_json_comment_warnings==1)
 		hi def link jsonCommentError				Error
+  else
+    hi def link jsComment              Comment
+    hi def link jsCommentEnv           PreProc
+    hi def link jsCommentTodo          Todo
+    hi def link jsCommentFunction      jsComment
+    hi def link jsCommentClass         jsComment
+    hi def link jsCommentIfElse        jsComment
+    hi def link jsCommentRepeat        jsComment
+  endif
+	
+  if (!exists("g:vim_json_warnings") || g:vim_json_warnings==1)
+		hi def link jsonNumError					Error
 		hi def link jsonSemicolonError			Error
 		hi def link jsonTrailingCommaError		Error
 		hi def link jsonMissingCommaError		Error
